@@ -46,24 +46,10 @@ func main() {
 
 	dedup := storage.NewDeduplicator()
 	pool := downloader.NewPool(4, dedup)
-	go func() {
-		for res := range pool.Results() {
-
-			text := formatMessage(res)
-
-			_, err := client.SendMessage(ctx, res.ChatID, &maxigo.NewMessageBody{
-				Text: maxigo.Some(text),
-			})
-
-			if err != nil {
-				log.Println("send error:", err)
-			}
-		}
-	}()
-
 	processor := attachments.NewProcessor(pool)
 	handler := bot.NewHandler(client, processor)
 
+	bot.StartNotifier(ctx, client, pool.Results())
 	bot.StartPolling(ctx, client, *handler)
 
 	<-ctx.Done()
@@ -89,26 +75,4 @@ func initFolders() error {
 	}
 
 	return nil
-}
-
-func formatMessage(r downloader.Result) string {
-	switch r.Status {
-	case "ok":
-		return "✅ " + r.File + " сохранён"
-
-	case "duplicate":
-		return "⚠️ " + r.File + " уже загружен ранее"
-
-	case "too_large":
-		return "❌ " + r.File + " слишком большой"
-
-	case "unsupported_type":
-		return "🚫 " + r.Message
-
-	case "unsupported_format":
-		return "🚫 " + r.Message
-
-	default:
-		return "❌ Ошибка: " + r.Message
-	}
 }
