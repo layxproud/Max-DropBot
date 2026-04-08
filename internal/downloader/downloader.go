@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"era-dropbot/utils"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -30,13 +31,27 @@ func NewDownloader(d Deduplicator) *Downloader {
 }
 
 func (d *Downloader) Download(job Job) Result {
-	resp, err := d.client.Get(job.URL)
+	var resp *http.Response
+	var err error
+
+	log.Printf("Downloading file: %s from chat %d", job.Filename, job.ChatID)
+	for i := 0; i < 3; i++ {
+		resp, err = d.client.Get(job.URL)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Duration(1<<i) * time.Second)
+	}
+
 	if err != nil {
+		log.Printf("Download failed: %s error: %v", job.Filename, err)
 		return Result{job.ChatID, job.Filename, "error", err.Error()}
 	}
 	defer resp.Body.Close()
 
 	if resp.ContentLength > MaxFileSize {
+		log.Printf("File %s is too large", job.Filename)
 		return Result{job.ChatID, job.Filename, "too_large", "Файл слишком большой"}
 	}
 
@@ -45,6 +60,7 @@ func (d *Downloader) Download(job Job) Result {
 
 	file, err := os.Create(path)
 	if err != nil {
+		log.Printf("Download failed: %s error: %v", job.Filename, err)
 		return Result{job.ChatID, job.Filename, "error", err.Error()}
 	}
 	defer file.Close()
@@ -59,16 +75,19 @@ func (d *Downloader) Download(job Job) Result {
 
 	_, err = io.Copy(file, limited)
 	if err != nil {
+		log.Printf("Download failed: %s error: %v", job.Filename, err)
 		return Result{job.ChatID, job.Filename, "error", err.Error()}
 	}
 
 	hash := hex.EncodeToString(hasher.Sum(nil))
 
 	if d.dedup.Seen(hash) {
+		log.Printf("Duplicate file skipped: %s", job.Filename)
 		_ = os.Remove(job.Path + safeName)
 		return Result{job.ChatID, job.Filename, "duplicate", "Файл уже загружался"}
 	}
 
 	d.dedup.Store(hash)
+	log.Printf("Saved file: %s", job.Filename)
 	return Result{job.ChatID, job.Filename, "ok", "Файл успешно сохранен"}
 }

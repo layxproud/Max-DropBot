@@ -17,6 +17,7 @@ import (
 )
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	_ = godotenv.Load()
 
 	err := initFolders()
@@ -47,7 +48,7 @@ func main() {
 	dedup := storage.NewDeduplicator()
 	pool := downloader.NewPool(4, dedup)
 	processor := attachments.NewProcessor(pool)
-	handler := bot.NewHandler(client, processor)
+	handler := bot.NewHandler(client, processor, ctx)
 
 	bot.StartNotifier(ctx, client, pool.Results())
 	bot.StartPolling(ctx, client, *handler)
