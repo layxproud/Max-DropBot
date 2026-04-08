@@ -35,8 +35,6 @@ func formatMessage(r downloader.Result) string {
 	switch r.Status {
 	case "ok":
 		return "✅ " + r.File + " сохранён"
-	case "duplicate":
-		return "⚠️ " + r.File + " уже загружен ранее"
 	case "too_large":
 		return "❌ " + r.File + " слишком большой"
 	case "unsupported_type", "unsupported_format":

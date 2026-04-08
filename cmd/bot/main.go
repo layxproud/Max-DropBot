@@ -5,7 +5,6 @@ import (
 	"era-dropbot/internal/attachments"
 	"era-dropbot/internal/bot"
 	"era-dropbot/internal/downloader"
-	"era-dropbot/internal/storage"
 	"fmt"
 	"log"
 	"os"
@@ -45,8 +44,7 @@ func main() {
 	info, _ := client.GetBot(ctx)
 	fmt.Printf("Бот: %s (ID: %d)\n", info.FirstName, info.UserID)
 
-	dedup := storage.NewDeduplicator()
-	pool := downloader.NewPool(4, dedup)
+	pool := downloader.NewPool(4)
 	processor := attachments.NewProcessor(pool)
 	handler := bot.NewHandler(client, processor, ctx)
 
@@ -64,16 +62,13 @@ func initFolders() error {
 	if err != nil {
 		return err
 	}
-
 	err = os.MkdirAll("./downloads/pptFiles", os.ModePerm)
 	if err != nil {
 		return err
 	}
-
 	err = os.MkdirAll("./downloads/docFiles", os.ModePerm)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

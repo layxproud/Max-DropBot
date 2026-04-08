@@ -20,11 +20,11 @@ type Pool struct {
 	dl      *Downloader
 }
 
-func NewPool(workers int, dedup Deduplicator) *Pool {
+func NewPool(workers int) *Pool {
 	p := &Pool{
 		jobs:    make(chan Job, 100),
 		results: make(chan Result, 100),
-		dl:      NewDownloader(dedup),
+		dl:      NewDownloader(),
 	}
 
 	for i := 0; i < workers; i++ {

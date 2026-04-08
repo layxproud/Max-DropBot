@@ -1,8 +1,6 @@
 package downloader
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"era-dropbot/utils"
 	"io"
 	"log"
@@ -23,10 +21,9 @@ type Downloader struct {
 	dedup  Deduplicator
 }
 
-func NewDownloader(d Deduplicator) *Downloader {
+func NewDownloader() *Downloader {
 	return &Downloader{
 		client: &http.Client{Timeout: 30 * time.Second},
-		dedup:  d,
 	}
 }
 
@@ -37,7 +34,7 @@ func (d *Downloader) Download(job Job) Result {
 	var resp *http.Response
 	var err error
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		resp, err = d.client.Get(job.URL)
 		if err == nil {
 			break
@@ -78,11 +75,8 @@ func (d *Downloader) Download(job Job) Result {
 		_ = os.Remove(tmpPath)
 	}()
 
-	hasher := sha256.New()
-	tee := io.TeeReader(resp.Body, hasher)
-
 	limited := &io.LimitedReader{
-		R: tee,
+		R: resp.Body,
 		N: MaxFileSize,
 	}
 
@@ -107,14 +101,6 @@ func (d *Downloader) Download(job Job) Result {
 		return Result{job.ChatID, job.Filename, "too_large", "Файл превышает лимит"}
 	}
 
-	// Проверяем хеш
-	hash := hex.EncodeToString(hasher.Sum(nil))
-
-	if d.dedup.Seen(hash) {
-		log.Printf("[DUPLICATE] file=%s hash=%s", job.Filename, hash)
-		return Result{job.ChatID, job.Filename, "duplicate", "Файл уже загружался"}
-	}
-
 	// Очистка буфера и завершение работы
 	if err := file.Sync(); err != nil {
 		log.Printf("[ERROR] sync failed file=%s error=%v", job.Filename, err)
@@ -130,9 +116,6 @@ func (d *Downloader) Download(job Job) Result {
 		log.Printf("[ERROR] rename failed file=%s error=%v", job.Filename, err)
 		return Result{job.ChatID, job.Filename, "error", err.Error()}
 	}
-
-	// Сохранение хеша
-	d.dedup.Store(hash)
 
 	log.Printf("[SUCCESS] saved file=%s size=%d", job.Filename, written)
 
