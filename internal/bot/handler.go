@@ -44,7 +44,7 @@ func (h *Handler) Handle(raw json.RawMessage) {
 		_, err := h.client.SendMessage(h.ctx, upd.ChatID, &maxigo.NewMessageBody{
 			Text: maxigo.Some("Вас приветствует бот для загрузки файлов на сервер SAMPLE_NAME." +
 				" Бот принимает файлы до 10 МБ следующих форматов:\n" +
-				"\n1) PDF (.pdf)\n2) PowerPoint (.ppt, .pptx)\n" +
+				"1) PDF (.pdf)\n2) PowerPoint (.ppt, .pptx)\n" +
 				"3) Microsoft Word: (.doc, .docx)\n" +
 				"Для продолжения просто пришлите файл в этот чат."),
 		})
