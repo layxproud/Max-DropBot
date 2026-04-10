@@ -58,15 +58,27 @@ func main() {
 }
 
 func initFolders() error {
-	err := os.MkdirAll("./downloads/pdfFiles", os.ModePerm)
+	err := os.MkdirAll("./downloads/PDF", os.ModePerm)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll("./downloads/pptFiles", os.ModePerm)
+	err = os.MkdirAll("./downloads/PowerPoint", os.ModePerm)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll("./downloads/docFiles", os.ModePerm)
+	err = os.MkdirAll("./downloads/Word", os.ModePerm)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll("./downloads/Video", os.ModePerm)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll("./downloads/Image", os.ModePerm)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll("./downloads/Audio", os.ModePerm)
 	if err != nil {
 		return err
 	}

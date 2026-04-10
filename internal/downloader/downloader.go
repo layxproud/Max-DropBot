@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const MaxFileSize = 10 << 20 // 10 MB
+const MaxFileSize = 25 << 20 // 25 MB
 
 type Deduplicator interface {
 	Seen(hash string) bool

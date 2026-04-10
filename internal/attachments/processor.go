@@ -16,11 +16,27 @@ func NewProcessor(pool *downloader.Pool) *Processor {
 }
 
 var routes = map[string]string{
-	".pdf":  "./downloads/pdfFiles/",
-	".doc":  "./downloads/docFiles/",
-	".docx": "./downloads/docFiles/",
-	".ppt":  "./downloads/pptFiles/",
-	".pptx": "./downloads/pptFiles/",
+	".pdf":  "./downloads/PDF/",
+	".doc":  "./downloads/Word/",
+	".docx": "./downloads/Word/",
+	".ppt":  "./downloads/PowerPoint/",
+	".pptx": "./downloads/PowerPoint/",
+	".mp4":  "./downloads/Video/",
+	".mov":  "./downloads/Video/",
+	".mkv":  "./downloads/Video/",
+	".avi":  "./downloads/Video/",
+	".wmv":  "./downloads/Video/",
+	".mp3":  "./downloads/Audio/",
+	".wav":  "./downloads/Audio/",
+	".aac":  "./downloads/Audio/",
+	".m4a":  "./downloads/Audio/",
+	".flac": "./downloads/Audio/",
+	".png":  "./downloads/Image/",
+	".jpg":  "./downloads/Image/",
+	".jpeg": "./downloads/Image/",
+	".gif":  "./downloads/Image/",
+	".tiff": "./downloads/Image/",
+	".svg":  "./downloads/Image/",
 }
 
 func (p *Processor) Process(chatID int64, atts []maxigo.Attachment) {

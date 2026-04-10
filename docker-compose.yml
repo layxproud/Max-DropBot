@@ -5,3 +5,5 @@ services:
     restart: always
     environment:
       - BOT_TOKEN=${BOT_TOKEN}
+    volumes:
+      - ./downloads:/app/downloads
