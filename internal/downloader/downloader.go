@@ -12,14 +12,8 @@ import (
 
 const MaxFileSize = 25 << 20 // 25 MB
 
-type Deduplicator interface {
-	Seen(hash string) bool
-	Store(hash string)
-}
-
 type Downloader struct {
 	client *http.Client
-	dedup  Deduplicator
 }
 
 func NewDownloader() *Downloader {
@@ -40,9 +34,7 @@ func (d *Downloader) Download(job Job) Result {
 		if err == nil {
 			break
 		}
-
 		log.Info().Msgf("Download retry %d file %s | Error: %s", i+1, job.Filename, err.Error())
-
 		time.Sleep(time.Duration(1<<i) * time.Second)
 	}
 

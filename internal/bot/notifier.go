@@ -16,7 +16,11 @@ func StartNotifier(ctx context.Context, client *maxigo.Client, results <-chan do
 				log.Info().Msg("Notifier stopped")
 				return
 
-			case res := <-results:
+			case res, ok := <-results:
+				if !ok {
+					log.Info().Msg("Results channel closed")
+					return
+				}
 				text := formatMessage(res)
 
 				_, err := client.SendMessage(ctx, res.ChatID, &maxigo.NewMessageBody{

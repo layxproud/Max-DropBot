@@ -1,5 +1,7 @@
 package downloader
 
+import "sync"
+
 type Job struct {
 	URL      string
 	Filename string
@@ -18,6 +20,7 @@ type Pool struct {
 	jobs    chan Job
 	results chan Result
 	dl      *Downloader
+	wg      sync.WaitGroup
 }
 
 func NewPool(workers int) *Pool {
@@ -28,6 +31,7 @@ func NewPool(workers int) *Pool {
 	}
 
 	for i := 0; i < workers; i++ {
+		p.wg.Add(1)
 		go p.worker()
 	}
 
@@ -48,9 +52,12 @@ func (p *Pool) SendResult(res Result) {
 
 func (p *Pool) Close() {
 	close(p.jobs)
+	p.wg.Wait()
+	close(p.results)
 }
 
 func (p *Pool) worker() {
+	defer p.wg.Done()
 	for job := range p.jobs {
 		res := p.dl.Download(job)
 		p.results <- res
