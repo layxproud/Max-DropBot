@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"era-dropbot/internal/attachments"
-	"log"
 
 	"github.com/maxigo-bot/maxigo-client"
+	"github.com/rs/zerolog/log"
 )
 
 type Handler struct {
@@ -25,21 +25,33 @@ func (h *Handler) Handle(raw json.RawMessage) {
 
 	switch base.UpdateType {
 	case maxigo.UpdateMessageCreated:
-		log.Println("Message received")
+		log.Info().Msg("New message received")
 		var upd maxigo.MessageCreatedUpdate
-		_ = json.Unmarshal(raw, &upd)
-
-		atts, err := upd.Message.Body.ParseAttachments()
-		if err != nil {
-			log.Println(err)
+		if err := json.Unmarshal(raw, &upd); err != nil {
+			log.Error().Msgf("Unmarshal error: %s", err.Error())
 			return
 		}
 
-		h.processor.Process(*upd.Message.Recipient.ChatID, atts)
+		atts, err := upd.Message.Body.ParseAttachments()
+		if err != nil {
+			log.Error().Msgf("Parsing attachments failed: %s", err.Error())
+			return
+		}
+
+		if upd.Message.Recipient.ChatID == nil {
+			log.Error().Msg("ChatID is nil")
+			return
+		}
+
+		chatID := *upd.Message.Recipient.ChatID
+		h.processor.Process(chatID, atts)
 
 	case maxigo.UpdateBotStarted:
 		var upd maxigo.BotStartedUpdate
-		_ = json.Unmarshal(raw, &upd)
+		if err := json.Unmarshal(raw, &upd); err != nil {
+			log.Error().Msgf("Unmarshal error: %s", err.Error())
+			return
+		}
 
 		_, err := h.client.SendMessage(h.ctx, upd.ChatID, &maxigo.NewMessageBody{
 			Text: maxigo.Some("Вас приветствует бот для загрузки файлов на сервер SAMPLE_NAME." +
@@ -50,7 +62,8 @@ func (h *Handler) Handle(raw json.RawMessage) {
 		})
 
 		if err != nil {
-			log.Println("send error:", err)
+			log.Error().Msgf("Send message error: %s", err.Error())
+			return
 		}
 	}
 }

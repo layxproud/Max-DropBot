@@ -3,9 +3,9 @@ package bot
 import (
 	"context"
 	"era-dropbot/internal/downloader"
-	"log"
 
 	"github.com/maxigo-bot/maxigo-client"
+	"github.com/rs/zerolog/log"
 )
 
 func StartNotifier(ctx context.Context, client *maxigo.Client, results <-chan downloader.Result) {
@@ -13,7 +13,7 @@ func StartNotifier(ctx context.Context, client *maxigo.Client, results <-chan do
 		for {
 			select {
 			case <-ctx.Done():
-				log.Println("Notifier stopped")
+				log.Info().Msg("Notifier stopped")
 				return
 
 			case res := <-results:
@@ -24,7 +24,7 @@ func StartNotifier(ctx context.Context, client *maxigo.Client, results <-chan do
 				})
 
 				if err != nil {
-					log.Println("send error:", err)
+					log.Error().Msgf("Send message error: %s", err.Error())
 				}
 			}
 		}

@@ -5,28 +5,26 @@ import (
 	"era-dropbot/internal/attachments"
 	"era-dropbot/internal/bot"
 	"era-dropbot/internal/downloader"
-	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/joho/godotenv"
 	maxigo "github.com/maxigo-bot/maxigo-client"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	_ = godotenv.Load()
 
 	err := initFolders()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Msgf("Init folders error: %s", err.Error())
 	}
 
 	client, err := maxigo.New(os.Getenv("BOT_TOKEN"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Msgf("Create bot error: %s", err.Error())
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -37,12 +35,15 @@ func main() {
 
 	go func() {
 		<-sigChan
-		log.Println("Shutting down...")
+		log.Info().Msg("Shutting down...")
 		cancel()
 	}()
 
-	info, _ := client.GetBot(ctx)
-	fmt.Printf("Бот: %s (ID: %d)\n", info.FirstName, info.UserID)
+	info, err := client.GetBot(ctx)
+	if err != nil {
+		log.Error().Msgf("Couldn't get bot info: %s", err.Error())
+	}
+	log.Info().Msgf("Бот: %s (ID: %d)\n", info.FirstName, info.UserID)
 
 	pool := downloader.NewPool(4)
 	processor := attachments.NewProcessor(pool)
@@ -54,33 +55,16 @@ func main() {
 	<-ctx.Done()
 
 	pool.Close()
-	log.Println("Shutdown complete")
+	log.Info().Msg("Shutdown complete!")
 }
 
 func initFolders() error {
-	err := os.MkdirAll("./downloads/PDF", os.ModePerm)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll("./downloads/PowerPoint", os.ModePerm)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll("./downloads/Word", os.ModePerm)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll("./downloads/Video", os.ModePerm)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll("./downloads/Image", os.ModePerm)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll("./downloads/Audio", os.ModePerm)
-	if err != nil {
-		return err
+	dirs := []string{"PDF", "Word", "PowerPoint", "Video", "Audio", "Image"}
+
+	for _, d := range dirs {
+		if err := os.MkdirAll("./downloads/"+d, os.ModePerm); err != nil {
+			return err
+		}
 	}
 	return nil
 }

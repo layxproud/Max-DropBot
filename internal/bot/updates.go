@@ -3,10 +3,10 @@ package bot
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/maxigo-bot/maxigo-client"
+	"github.com/rs/zerolog/log"
 )
 
 func StartPolling(ctx context.Context, client *maxigo.Client, handler Handler) {
@@ -15,7 +15,7 @@ func StartPolling(ctx context.Context, client *maxigo.Client, handler Handler) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Polling stopped")
+			log.Info().Msg("Polling stopped")
 			return
 		default:
 		}
@@ -31,7 +31,7 @@ func StartPolling(ctx context.Context, client *maxigo.Client, handler Handler) {
 				return
 			}
 
-			log.Println("error:", err)
+			log.Error().Msgf("Polling error: %s", err.Error())
 			select {
 			case <-time.After(time.Second):
 			case <-ctx.Done():

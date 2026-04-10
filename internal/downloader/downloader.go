@@ -3,10 +3,11 @@ package downloader
 import (
 	"era-dropbot/utils"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 const MaxFileSize = 25 << 20 // 25 MB
@@ -28,7 +29,7 @@ func NewDownloader() *Downloader {
 }
 
 func (d *Downloader) Download(job Job) Result {
-	log.Printf("[DOWNLOAD] start file=%s chat=%d", job.Filename, job.ChatID)
+	log.Info().Msgf("Downloading file %s in chat %d", job.Filename, job.ChatID)
 
 	// Загрузка в несколько попыток
 	var resp *http.Response
@@ -40,20 +41,20 @@ func (d *Downloader) Download(job Job) Result {
 			break
 		}
 
-		log.Printf("[DOWNLOAD] retry=%d file=%s error=%v", i+1, job.Filename, err)
+		log.Info().Msgf("Download retry %d file %s | Error: %s", i+1, job.Filename, err.Error())
 
 		time.Sleep(time.Duration(1<<i) * time.Second)
 	}
 
 	if err != nil {
-		log.Printf("[ERROR] download failed file=%s error=%v", job.Filename, err)
+		log.Error().Msgf("Failed downloading file %s | Error: %s", job.Filename, err.Error())
 		return Result{job.ChatID, job.Filename, "error", err.Error()}
 	}
 	defer resp.Body.Close()
 
 	// Проверяем размер
 	if resp.ContentLength > MaxFileSize {
-		log.Printf("[REJECT] too large file=%s size=%d", job.Filename, resp.ContentLength)
+		log.Error().Msgf("File=%s size=%d is rejected, too large", job.Filename, resp.ContentLength)
 		return Result{job.ChatID, job.Filename, "too_large", "Файл слишком большой"}
 	}
 
@@ -65,7 +66,7 @@ func (d *Downloader) Download(job Job) Result {
 	// Создаем временный файл
 	file, err := os.Create(tmpPath)
 	if err != nil {
-		log.Printf("[ERROR] create tmp file failed file=%s error=%v", job.Filename, err)
+		log.Error().Msgf("Couldn't create temp file %s | Error: %s", job.Filename, err.Error())
 		return Result{job.ChatID, job.Filename, "error", err.Error()}
 	}
 
@@ -83,13 +84,13 @@ func (d *Downloader) Download(job Job) Result {
 	// Копируем данные в файл
 	written, err := io.Copy(file, limited)
 	if err != nil {
-		log.Printf("[ERROR] write failed file=%s error=%v", job.Filename, err)
+		log.Error().Msgf("Failed writing file %s | Error: %s", job.Filename, err.Error())
 		return Result{job.ChatID, job.Filename, "error", err.Error()}
 	}
 
 	// файл оборван
 	if resp.ContentLength > 0 && written != resp.ContentLength {
-		log.Printf("[ERROR] incomplete file=%s written=%d expected=%d",
+		log.Printf("Incomplete file %s | Written=%d / Expected=%d",
 			job.Filename, written, resp.ContentLength)
 
 		return Result{job.ChatID, job.Filename, "error", "Файл скачан не полностью"}
@@ -97,27 +98,27 @@ func (d *Downloader) Download(job Job) Result {
 
 	// превышен лимит
 	if limited.N <= 0 {
-		log.Printf("[REJECT] exceeded limit file=%s", job.Filename)
-		return Result{job.ChatID, job.Filename, "too_large", "Файл превышает лимит"}
+		log.Error().Msgf("File=%s size=%d is rejected, too large", job.Filename, resp.ContentLength)
+		return Result{job.ChatID, job.Filename, "too_large", "Файл слишком большой"}
 	}
 
 	// Очистка буфера и завершение работы
 	if err := file.Sync(); err != nil {
-		log.Printf("[ERROR] sync failed file=%s error=%v", job.Filename, err)
+		log.Error().Msgf("Failed syncing file %s | Error: %s", job.Filename, err.Error())
 		return Result{job.ChatID, job.Filename, "error", err.Error()}
 	}
 
 	if err := file.Close(); err != nil {
-		log.Printf("[ERROR] close failed file=%s error=%v", job.Filename, err)
+		log.Error().Msgf("Couldn't close file %s | Error: %v", job.Filename, err.Error())
 		return Result{job.ChatID, job.Filename, "error", err.Error()}
 	}
 
 	if err := os.Rename(tmpPath, finalPath); err != nil {
-		log.Printf("[ERROR] rename failed file=%s error=%v", job.Filename, err)
+		log.Printf("Couldn't rename file %s | Error: %s", job.Filename, err.Error())
 		return Result{job.ChatID, job.Filename, "error", err.Error()}
 	}
 
-	log.Printf("[SUCCESS] saved file=%s size=%d", job.Filename, written)
+	log.Info().Msgf("Saved file %s", job.Filename)
 
 	return Result{job.ChatID, job.Filename, "ok", "Файл успешно сохранен"}
 }
