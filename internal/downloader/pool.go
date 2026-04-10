@@ -1,12 +1,16 @@
 package downloader
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
 type Job struct {
 	URL      string
 	Filename string
 	Path     string
 	ChatID   int64
+	Ctx      context.Context
 }
 
 type Result struct {

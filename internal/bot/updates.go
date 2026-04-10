@@ -42,7 +42,7 @@ func StartPolling(ctx context.Context, client *maxigo.Client, handler Handler) {
 		}
 
 		for _, raw := range result.Updates {
-			handler.Handle(raw)
+			handler.Handle(ctx, raw)
 		}
 
 		if result.Marker != nil {

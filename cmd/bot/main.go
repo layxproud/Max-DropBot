@@ -47,7 +47,7 @@ func main() {
 
 	pool := downloader.NewPool(4)
 	processor := attachments.NewProcessor(pool)
-	handler := bot.NewHandler(client, processor, ctx)
+	handler := bot.NewHandler(client, processor)
 
 	bot.StartNotifier(ctx, client, pool.Results())
 	bot.StartPolling(ctx, client, *handler)

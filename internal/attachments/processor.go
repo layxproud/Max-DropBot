@@ -1,6 +1,7 @@
 package attachments
 
 import (
+	"context"
 	"era-dropbot/internal/downloader"
 	"strings"
 
@@ -39,11 +40,11 @@ var routes = map[string]string{
 	".svg":  "./downloads/Image/",
 }
 
-func (p *Processor) Process(chatID int64, atts []maxigo.Attachment) {
+func (p *Processor) Process(ctx context.Context, chatID int64, atts []maxigo.Attachment) {
 	for _, att := range atts {
 		switch a := att.(type) {
 		case *maxigo.FileAttachment:
-			p.handleFile(chatID, a)
+			p.handleFile(ctx, chatID, a)
 		default:
 			p.pool.SendResult(downloader.Result{
 				ChatID:  chatID,
@@ -55,7 +56,7 @@ func (p *Processor) Process(chatID int64, atts []maxigo.Attachment) {
 	}
 }
 
-func (p *Processor) handleFile(chatID int64, file *maxigo.FileAttachment) {
+func (p *Processor) handleFile(ctx context.Context, chatID int64, file *maxigo.FileAttachment) {
 	name := strings.ToLower(file.Filename)
 
 	for ext, path := range routes {
@@ -65,6 +66,7 @@ func (p *Processor) handleFile(chatID int64, file *maxigo.FileAttachment) {
 				Filename: file.Filename,
 				Path:     path,
 				ChatID:   chatID,
+				Ctx:      ctx,
 			})
 			return
 		}

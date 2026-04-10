@@ -12,14 +12,13 @@ import (
 type Handler struct {
 	client    *maxigo.Client
 	processor *attachments.Processor
-	ctx       context.Context
 }
 
-func NewHandler(cl *maxigo.Client, p *attachments.Processor, ct context.Context) *Handler {
-	return &Handler{cl, p, ct}
+func NewHandler(cl *maxigo.Client, p *attachments.Processor) *Handler {
+	return &Handler{cl, p}
 }
 
-func (h *Handler) Handle(raw json.RawMessage) {
+func (h *Handler) Handle(ctx context.Context, raw json.RawMessage) {
 	var base maxigo.Update
 	_ = json.Unmarshal(raw, &base)
 
@@ -44,7 +43,7 @@ func (h *Handler) Handle(raw json.RawMessage) {
 		}
 
 		chatID := *upd.Message.Recipient.ChatID
-		h.processor.Process(chatID, atts)
+		h.processor.Process(ctx, chatID, atts)
 
 	case maxigo.UpdateBotStarted:
 		var upd maxigo.BotStartedUpdate
@@ -53,7 +52,7 @@ func (h *Handler) Handle(raw json.RawMessage) {
 			return
 		}
 
-		_, err := h.client.SendMessage(h.ctx, upd.ChatID, &maxigo.NewMessageBody{
+		_, err := h.client.SendMessage(ctx, upd.ChatID, &maxigo.NewMessageBody{
 			Text: maxigo.Some("Вас приветствует бот для загрузки файлов на сервер SAMPLE_NAME." +
 				" Бот принимает файлы до 10 МБ следующих форматов:\n" +
 				"1) PDF (.pdf)\n2) PowerPoint (.ppt, .pptx)\n" +

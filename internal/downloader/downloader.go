@@ -30,17 +30,17 @@ func (d *Downloader) Download(job Job) Result {
 	var err error
 
 	for i := range 3 {
-		resp, err = d.client.Get(job.URL)
+		req, err := http.NewRequestWithContext(job.Ctx, "GET", job.URL, nil)
+		if err != nil {
+			log.Error().Msgf("Failed downloading file %s | Error: %s", job.Filename, err.Error())
+			return Result{job.ChatID, job.Filename, "error", err.Error()}
+		}
+		resp, err = d.client.Do(req)
 		if err == nil {
 			break
 		}
 		log.Info().Msgf("Download retry %d file %s | Error: %s", i+1, job.Filename, err.Error())
 		time.Sleep(time.Duration(1<<i) * time.Second)
-	}
-
-	if err != nil {
-		log.Error().Msgf("Failed downloading file %s | Error: %s", job.Filename, err.Error())
-		return Result{job.ChatID, job.Filename, "error", err.Error()}
 	}
 	defer resp.Body.Close()
 
