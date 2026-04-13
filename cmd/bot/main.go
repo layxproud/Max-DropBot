@@ -22,7 +22,10 @@ func main() {
 		log.Fatal().Msgf("Init folders error: %s", err.Error())
 	}
 
-	client, err := maxigo.New(os.Getenv("BOT_TOKEN"))
+	client, err := maxigo.New(
+		os.Getenv("BOT_TOKEN"),
+		maxigo.WithRetry(),
+	)
 	if err != nil {
 		log.Fatal().Msgf("Create bot error: %s", err.Error())
 	}
