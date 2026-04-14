@@ -2,11 +2,12 @@ package downloader
 
 import (
 	"context"
+	"era-dropbot/internal/storage"
 	"era-dropbot/utils"
+	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -15,12 +16,14 @@ import (
 const MaxFileSize = 25 << 20 // 25 MB
 
 type Downloader struct {
-	client *http.Client
+	client  *http.Client
+	storage *storage.MinioStorage
 }
 
-func NewDownloader() *Downloader {
+func NewDownloader(storage *storage.MinioStorage) *Downloader {
 	return &Downloader{
-		client: &http.Client{Timeout: 30 * time.Second},
+		client:  &http.Client{Timeout: 30 * time.Second},
+		storage: storage,
 	}
 }
 
@@ -37,34 +40,33 @@ func backoff(ctx context.Context, attempt int) {
 
 func (d *Downloader) Download(job Job) Result {
 	log.Info().
-		Msgf("Downloading file %s in chat %d", job.Filename, job.ChatID)
+		Str("file", job.Filename).
+		Int64("chat_id", job.ChatID).
+		Msg("start download")
 
-	// Загрузка в несколько попыток
 	var resp *http.Response
 	var err error
 
+	// --- RETRY ---
 	for i := 0; i < 3; i++ {
 		select {
 		case <-job.Ctx.Done():
-			log.Info().
-				Msg("Downloader stopped")
+			log.Info().Msg("downloader canceled")
 			return Result{
-				job.ChatID,
-				job.Filename,
-				StatusInternalError,
+				ChatID: job.ChatID,
+				File:   job.Filename,
+				Status: StatusInternalError,
 			}
 		default:
 		}
 
 		req, err := http.NewRequestWithContext(job.Ctx, "GET", job.URL, nil)
 		if err != nil {
-			log.Error().
-				Err(err).
-				Msg("Create request error")
+			log.Error().Err(err).Msg("create request failed")
 			return Result{
-				job.ChatID,
-				job.Filename,
-				StatusInternalError,
+				ChatID: job.ChatID,
+				File:   job.Filename,
+				Status: StatusInternalError,
 			}
 		}
 
@@ -72,9 +74,9 @@ func (d *Downloader) Download(job Job) Result {
 		if err != nil {
 			log.Warn().
 				Err(err).
-				Str("File", job.Filename).
-				Int("Attempt", i+1).
-				Msg("Download retry")
+				Str("file", job.Filename).
+				Int("attempt", i+1).
+				Msg("retry download")
 
 			backoff(job.Ctx, i)
 			continue
@@ -82,9 +84,9 @@ func (d *Downloader) Download(job Job) Result {
 
 		if resp.StatusCode == http.StatusTooManyRequests {
 			log.Warn().
-				Str("File", job.Filename).
-				Int("Attempt", i+1).
-				Msg("Rate limited")
+				Str("file", job.Filename).
+				Int("attempt", i+1).
+				Msg("rate limited")
 
 			resp.Body.Close()
 			backoff(job.Ctx, i)
@@ -93,10 +95,10 @@ func (d *Downloader) Download(job Job) Result {
 
 		if resp.StatusCode >= 500 {
 			log.Warn().
-				Int("Code", resp.StatusCode).
-				Str("File", job.Filename).
-				Int("Attempt", i+1).
-				Msg("Server error")
+				Int("status", resp.StatusCode).
+				Str("file", job.Filename).
+				Int("attempt", i+1).
+				Msg("server error")
 
 			resp.Body.Close()
 			backoff(job.Ctx, i)
@@ -106,157 +108,102 @@ func (d *Downloader) Download(job Job) Result {
 		if resp.StatusCode != http.StatusOK {
 			resp.Body.Close()
 			log.Error().
-				Int("Code", resp.StatusCode).
-				Str("File", job.Filename).
-				Msg("Client error")
+				Int("status", resp.StatusCode).
+				Str("file", job.Filename).
+				Msg("client error")
+
 			return Result{
-				job.ChatID,
-				job.Filename,
-				StatusInternalError,
+				ChatID: job.ChatID,
+				File:   job.Filename,
+				Status: StatusInternalError,
 			}
 		}
 
 		break
 	}
-	if resp == nil {
-		log.Error().
-			Str("File", job.Filename).
-			Msg("No response")
 
+	if resp == nil {
+		log.Error().Str("file", job.Filename).Msg("no response after retries")
 		return Result{
-			job.ChatID,
-			job.Filename,
-			StatusInternalError,
+			ChatID: job.ChatID,
+			File:   job.Filename,
+			Status: StatusInternalError,
 		}
 	}
-
 	defer resp.Body.Close()
 
-	// Проверяем размер
+	// --- SIZE CHECK ---
 	if resp.ContentLength > 0 && resp.ContentLength > MaxFileSize {
-		log.Error().
-			Str("File", job.Filename).
-			Int("Size", int(resp.ContentLength)).
-			Msg("Too large")
+		log.Warn().
+			Str("file", job.Filename).
+			Int64("size", resp.ContentLength).
+			Msg("file too large (header)")
+
 		return Result{
-			job.ChatID,
-			job.Filename,
-			StatusTooLarge,
+			ChatID: job.ChatID,
+			File:   job.Filename,
+			Status: StatusTooLarge,
 		}
 	}
 
-	// Создаем пути
-	safeName := utils.SanitizeFilename(job.Filename)
-	finalPath := job.Path + safeName
-	tmpPath := finalPath + ".tmp"
-
-	// Создаем временный файл
-	file, err := os.Create(tmpPath)
-	if err != nil {
-		log.Error().
-			Str("File", job.Filename).
-			Err(err).
-			Msg("Create file error")
-		return Result{
-			job.ChatID,
-			job.Filename,
-			StatusInternalError,
-		}
-	}
-
-	// Если что-то пошло не так - удалим tmp
-	defer func() {
-		if file != nil {
-			file.Close()
-		}
-		_ = os.Remove(tmpPath)
-	}()
-
+	// --- STREAM LIMIT ---
 	limited := &io.LimitedReader{
 		R: resp.Body,
 		N: MaxFileSize,
 	}
 
-	// Копируем данные в файл
-	written, err := io.Copy(file, limited)
+	// --- UNIQUE NAME ---
+	safeName := utils.SanitizeFilename(job.Filename)
+	objectName := fmt.Sprintf("%d_%s", time.Now().Unix(), safeName)
+
+	// --- UPLOAD TO MINIO ---
+	size := resp.ContentLength
+	if size < 0 {
+		size = -1
+	}
+
+	url, err := d.storage.Upload(
+		job.Ctx,
+		objectName,
+		limited,
+		size,
+		resp.Header.Get("Content-Type"),
+	)
 	if err != nil {
 		log.Error().
 			Err(err).
-			Str("File", job.Filename).
-			Msg("Write file error")
+			Str("file", job.Filename).
+			Msg("upload failed")
+
 		return Result{
-			job.ChatID,
-			job.Filename,
-			StatusInternalError,
+			ChatID: job.ChatID,
+			File:   job.Filename,
+			Status: StatusInternalError,
 		}
 	}
 
-	// файл оборван
-	if resp.ContentLength > 0 && written != resp.ContentLength {
-		log.Error().
-			Str("File", job.Filename).
-			Msg("Incomplete download")
-		return Result{
-			job.ChatID,
-			job.Filename,
-			StatusInternalError,
-		}
-	}
-
-	// превышен лимит
+	// --- CHECK LIMIT OVERFLOW ---
 	if limited.N <= 0 {
-		log.Error().
-			Str("File", job.Filename).
-			Int("Size", int(resp.ContentLength)).
-			Msg("Too large")
-		return Result{job.ChatID, job.Filename, StatusTooLarge}
-	}
+		log.Warn().
+			Str("file", job.Filename).
+			Msg("file exceeded limit during stream")
 
-	// Очистка буфера и завершение работы
-	if err := file.Sync(); err != nil {
-		log.Error().
-			Err(err).
-			Str("File", job.Filename).
-			Msg("Flush error")
 		return Result{
-			job.ChatID,
-			job.Filename,
-			StatusInternalError,
+			ChatID: job.ChatID,
+			File:   job.Filename,
+			Status: StatusTooLarge,
 		}
 	}
 
-	if err := file.Close(); err != nil {
-		log.Error().
-			Err(err).
-			Str("File", job.Filename).
-			Msg("Close file error")
-		return Result{
-			job.ChatID,
-			job.Filename,
-			StatusInternalError,
-		}
-	}
-
-	if err := os.Rename(tmpPath, finalPath); err != nil {
-		log.Error().
-			Err(err).
-			Str("File", job.Filename).
-			Msg("Rename file error")
-		return Result{
-			job.ChatID,
-			job.Filename,
-			StatusInternalError,
-		}
-	}
-	file = nil
-
-	// Успех
 	log.Info().
-		Str("File", job.Filename).
-		Msg("File saved")
+		Str("file", job.Filename).
+		Str("url", url).
+		Msg("file uploaded")
+
 	return Result{
-		job.ChatID,
-		job.Filename,
-		StatusOK,
+		ChatID: job.ChatID,
+		File:   job.Filename,
+		Status: StatusOK,
+		URL:    url,
 	}
 }

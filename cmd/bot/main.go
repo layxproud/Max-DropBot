@@ -5,6 +5,7 @@ import (
 	"era-dropbot/internal/attachments"
 	"era-dropbot/internal/bot"
 	"era-dropbot/internal/downloader"
+	"era-dropbot/internal/storage"
 	"os"
 	"os/signal"
 	"syscall"
@@ -48,7 +49,16 @@ func main() {
 	}
 	log.Info().Msgf("Бот: %s (ID: %d)\n", info.FirstName, info.UserID)
 
-	pool := downloader.NewPool(4)
+	minioStorage, err := storage.NewMinio(
+		"minio:9000",
+		"minio",
+		"minio123",
+		"files",
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to init minio")
+	}
+	pool := downloader.NewPool(4, minioStorage)
 	processor := attachments.NewProcessor(pool)
 	handler := bot.NewHandler(client, processor)
 

@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"context"
+	"era-dropbot/internal/storage"
 	"sync"
 )
 
@@ -26,6 +27,7 @@ type Result struct {
 	ChatID int64
 	File   string
 	Status Status
+	URL    string
 }
 
 type Pool struct {
@@ -35,11 +37,11 @@ type Pool struct {
 	wg      sync.WaitGroup
 }
 
-func NewPool(workers int) *Pool {
+func NewPool(workers int, storage *storage.MinioStorage) *Pool {
 	p := &Pool{
 		jobs:    make(chan Job, 100),
 		results: make(chan Result, 100),
-		dl:      NewDownloader(),
+		dl:      NewDownloader(storage),
 	}
 
 	for i := 0; i < workers; i++ {
