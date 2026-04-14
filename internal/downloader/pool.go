@@ -5,6 +5,15 @@ import (
 	"sync"
 )
 
+type Status int
+
+const (
+	StatusOK Status = iota
+	StatusTooLarge
+	StatusUnsupported
+	StatusInternalError
+)
+
 type Job struct {
 	URL      string
 	Filename string
@@ -14,10 +23,9 @@ type Job struct {
 }
 
 type Result struct {
-	ChatID  int64
-	File    string
-	Status  string
-	Message string
+	ChatID int64
+	File   string
+	Status Status
 }
 
 type Pool struct {

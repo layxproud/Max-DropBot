@@ -47,10 +47,9 @@ func (p *Processor) Process(ctx context.Context, chatID int64, atts []maxigo.Att
 			p.handleFile(ctx, chatID, a)
 		default:
 			p.pool.SendResult(downloader.Result{
-				ChatID:  chatID,
-				File:    "unknown",
-				Status:  "unsupported_type",
-				Message: "Неподдерживаемый тип вложения",
+				ChatID: chatID,
+				File:   "unknown",
+				Status: downloader.StatusUnsupported,
 			})
 		}
 	}
@@ -73,9 +72,8 @@ func (p *Processor) handleFile(ctx context.Context, chatID int64, file *maxigo.F
 	}
 
 	p.pool.SendResult(downloader.Result{
-		ChatID:  chatID,
-		File:    file.Filename,
-		Status:  "unsupported_format",
-		Message: "Неподдерживаемый формат файла",
+		ChatID: chatID,
+		File:   file.Filename,
+		Status: downloader.StatusUnsupported,
 	})
 }

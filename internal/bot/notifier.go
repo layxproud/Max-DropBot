@@ -44,13 +44,18 @@ func StartNotifier(ctx context.Context, client *maxigo.Client, results <-chan do
 
 func formatMessage(r downloader.Result) string {
 	switch r.Status {
-	case "ok":
+	case downloader.StatusOK:
 		return "✅ " + r.File + " сохранён"
-	case "too_large":
+
+	case downloader.StatusTooLarge:
 		return "❌ " + r.File + " слишком большой"
-	case "unsupported_type", "unsupported_format":
-		return "🚫 " + r.Message
-	default:
-		return ""
+
+	case downloader.StatusUnsupported:
+		return "🚫 Неподдерживаемый формат"
+
+	case downloader.StatusInternalError:
+		return "Не удалось скачать файл " + r.File
 	}
+
+	return ""
 }
