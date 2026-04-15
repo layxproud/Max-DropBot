@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
@@ -10,11 +11,14 @@ import (
 )
 
 type MinioStorage struct {
-	client *minio.Client
-	bucket string
+	client    *minio.Client
+	bucket    string
+	publicURL string
 }
 
 func NewMinio(endpoint, accessKey, secretKey, bucket string) (*MinioStorage, error) {
+	fmt.Print(accessKey)
+	fmt.Print(secretKey)
 	client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: false,

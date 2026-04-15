@@ -62,7 +62,9 @@ func (d *Downloader) Download(job Job) Result {
 
 		req, err := http.NewRequestWithContext(job.Ctx, "GET", job.URL, nil)
 		if err != nil {
-			log.Error().Err(err).Msg("create request failed")
+			log.Error().
+				Err(err).
+				Msg("create request failed")
 			return Result{
 				ChatID: job.ChatID,
 				File:   job.Filename,
@@ -123,7 +125,9 @@ func (d *Downloader) Download(job Job) Result {
 	}
 
 	if resp == nil {
-		log.Error().Str("file", job.Filename).Msg("no response after retries")
+		log.Error().
+			Str("file", job.Filename).
+			Msg("no response after retries")
 		return Result{
 			ChatID: job.ChatID,
 			File:   job.Filename,
@@ -154,11 +158,17 @@ func (d *Downloader) Download(job Job) Result {
 
 	// --- UNIQUE NAME ---
 	safeName := utils.SanitizeFilename(job.Filename)
-	objectName := fmt.Sprintf("%d_%s", time.Now().Unix(), safeName)
+	objectName := fmt.Sprintf(
+		"%s/%d_%s",
+		job.Path,
+		time.Now().Unix(),
+		safeName,
+	)
 
 	// --- UPLOAD TO MINIO ---
 	size := resp.ContentLength
 	if size < 0 {
+		log.Warn().Msg("unknown content length")
 		size = -1
 	}
 

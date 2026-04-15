@@ -5,8 +5,10 @@ services:
     restart: always
     environment:
       - BOT_TOKEN=${BOT_TOKEN}
-    volumes:
-      - ./downloads:/app/downloads
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    # volumes:
+    #   - ./downloads:/app/downloads
     depends_on:
       minio:
         condition: service_healthy

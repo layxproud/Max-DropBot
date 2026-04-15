@@ -18,10 +18,10 @@ import (
 func main() {
 	_ = godotenv.Load()
 
-	err := initFolders()
-	if err != nil {
-		log.Fatal().Msgf("Init folders error: %s", err.Error())
-	}
+	// err := initFolders()
+	// if err != nil {
+	// 	log.Fatal().Msgf("Init folders error: %s", err.Error())
+	// }
 
 	client, err := maxigo.New(
 		os.Getenv("BOT_TOKEN"),
@@ -51,8 +51,8 @@ func main() {
 
 	minioStorage, err := storage.NewMinio(
 		"minio:9000",
-		"minio",
-		"minio123",
+		os.Getenv("MINIO_ROOT_USER"),
+		os.Getenv("MINIO_ROOT_PASSWORD"),
 		"files",
 	)
 	if err != nil {
