@@ -10,51 +10,61 @@ import (
 )
 
 type MinioStorage struct {
-	client *minio.Client
-	bucket string
+	uploadClient *minio.Client // nginx:80 — used for PutObject
+	urlClient    *minio.Client // localhost:80 — used only for signing, no network calls
+	bucket       string
 }
 
-func NewMinio(endpoint, accessKey, secretKey, bucket string) (*MinioStorage, error) {
-	client, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: false,
-	})
+func NewMinio(endpoint, accessKey, secretKey, bucket, publicEndpoint string) (*MinioStorage, error) {
+	newClient := func(ep string) (*minio.Client, error) {
+		return minio.New(ep, &minio.Options{
+			Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+			Secure: false,
+			Region: "us-east-1",
+		})
+	}
+
+	uploadClient, err := newClient(endpoint)
 	if err != nil {
 		return nil, err
 	}
 
+	urlClient, err := newClient(publicEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	// Only use uploadClient for bucket operations (actual network calls)
 	ctx := context.Background()
-
-	exists, err := client.BucketExists(ctx, bucket)
+	exists, err := uploadClient.BucketExists(ctx, bucket)
 	if err != nil {
 		return nil, err
 	}
-
 	if !exists {
-		err = client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
-		if err != nil {
+		if err = uploadClient.MakeBucket(ctx, bucket, minio.MakeBucketOptions{}); err != nil {
 			return nil, err
 		}
 	}
 
 	return &MinioStorage{
-		client: client,
-		bucket: bucket,
+		uploadClient: uploadClient,
+		urlClient:    urlClient,
+		bucket:       bucket,
 	}, nil
 }
 
 func (s *MinioStorage) Upload(ctx context.Context, objectName string, reader io.Reader, size int64, contentType string) (string, error) {
-	_, err := s.client.PutObject(ctx, s.bucket, objectName, reader, size, minio.PutObjectOptions{
+	_, err := s.uploadClient.PutObject(ctx, s.bucket, objectName, reader, size, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	if err != nil {
 		return "", err
 	}
 
-	url, err := s.client.PresignedGetObject(ctx, s.bucket, objectName, 24*time.Hour, nil)
+	u, err := s.urlClient.PresignedGetObject(ctx, s.bucket, objectName, 24*time.Hour, nil)
 	if err != nil {
 		return "", err
 	}
 
-	return url.String(), nil
+	return u.String(), nil
 }

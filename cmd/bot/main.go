@@ -54,10 +54,12 @@ func main() {
 		os.Getenv("MINIO_ROOT_USER"),
 		os.Getenv("MINIO_ROOT_PASSWORD"),
 		"files",
+		os.Getenv("MINIO_PUBLIC_ENDPOINT"),
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to init minio")
 	}
+
 	pool := downloader.NewPool(4, minioStorage)
 	processor := attachments.NewProcessor(pool)
 	handler := bot.NewHandler(client, processor)
