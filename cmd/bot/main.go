@@ -50,7 +50,7 @@ func main() {
 	log.Info().Msgf("Бот: %s (ID: %d)\n", info.FirstName, info.UserID)
 
 	minioStorage, err := storage.NewMinio(
-		"minio:9000",
+		os.Getenv("MINIO_ENDPOINT"),
 		os.Getenv("MINIO_ROOT_USER"),
 		os.Getenv("MINIO_ROOT_PASSWORD"),
 		"files",
