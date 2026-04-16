@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"era-dropbot/internal/downloader"
+	"era-dropbot/internal/messages"
 	"fmt"
 
 	"github.com/maxigo-bot/maxigo-client"
@@ -46,17 +47,16 @@ func StartNotifier(ctx context.Context, client *maxigo.Client, results <-chan do
 func formatMessage(r downloader.Result) string {
 	switch r.Status {
 	case downloader.StatusOK:
-		return fmt.Sprintf("✅ %s загружен!\n%s", r.File, r.URL)
+		return fmt.Sprintf(messages.FileUploaded, r.File, r.URL)
 
 	case downloader.StatusTooLarge:
-		return fmt.Sprintf("❌ %s слишком большой!\nМаксимальный размер 25 МБ.", r.File)
+		return fmt.Sprintf(messages.FileTooLarge, r.File)
 
 	case downloader.StatusUnsupported:
-		return fmt.Sprintf("❌ Не удалось скачать файл %s\n"+
-			"Для получения справки по принимаемым форматам напишите /info", r.File)
+		return fmt.Sprintf(messages.UnsupportedFormat, r.File)
 
 	case downloader.StatusInternalError:
-		return fmt.Sprintf("❌ Не удалось скачать файл %s из-за внутренней ошибки.", r.File)
+		return fmt.Sprintf(messages.InternalError, r.File)
 	}
 
 	return ""

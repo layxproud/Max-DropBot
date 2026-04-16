@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/maxigo-bot/maxigo-client"
+	"github.com/rs/zerolog/log"
 )
 
 type Processor struct {
@@ -46,6 +47,7 @@ func (p *Processor) Process(ctx context.Context, chatID int64, atts []maxigo.Att
 		case *maxigo.FileAttachment:
 			p.handleFile(ctx, chatID, a)
 		default:
+			log.Warn().Str("type", a.GetType()).Msg("unsupported type of attachment")
 			p.pool.SendResult(downloader.Result{
 				ChatID: chatID,
 				File:   "unknown",
@@ -71,6 +73,7 @@ func (p *Processor) handleFile(ctx context.Context, chatID int64, file *maxigo.F
 		}
 	}
 
+	log.Warn().Str("file", file.Filename).Msg("unsupported file extension")
 	p.pool.SendResult(downloader.Result{
 		ChatID: chatID,
 		File:   file.Filename,
