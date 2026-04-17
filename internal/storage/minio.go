@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"era-dropbot/internal/shortener"
 	"io"
 	"time"
 
@@ -13,9 +14,10 @@ type MinioStorage struct {
 	uploadClient *minio.Client // nginx:80 — used for PutObject
 	urlClient    *minio.Client // localhost:80 — used only for signing, no network calls
 	bucket       string
+	shortener    *shortener.Shortener
 }
 
-func NewMinio(endpoint, accessKey, secretKey, bucket, publicEndpoint string) (*MinioStorage, error) {
+func NewMinio(endpoint, accessKey, secretKey, bucket, publicEndpoint string, shortener *shortener.Shortener) (*MinioStorage, error) {
 	newClient := func(ep string) (*minio.Client, error) {
 		return minio.New(ep, &minio.Options{
 			Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
@@ -34,7 +36,6 @@ func NewMinio(endpoint, accessKey, secretKey, bucket, publicEndpoint string) (*M
 		return nil, err
 	}
 
-	// Only use uploadClient for bucket operations (actual network calls)
 	ctx := context.Background()
 	exists, err := uploadClient.BucketExists(ctx, bucket)
 	if err != nil {
@@ -50,6 +51,7 @@ func NewMinio(endpoint, accessKey, secretKey, bucket, publicEndpoint string) (*M
 		uploadClient: uploadClient,
 		urlClient:    urlClient,
 		bucket:       bucket,
+		shortener:    shortener,
 	}, nil
 }
 
@@ -61,10 +63,10 @@ func (s *MinioStorage) Upload(ctx context.Context, objectName string, reader io.
 		return "", err
 	}
 
-	u, err := s.urlClient.PresignedGetObject(ctx, s.bucket, objectName, 24*time.Hour, nil)
+	presigned, err := s.urlClient.PresignedGetObject(ctx, s.bucket, objectName, 24*time.Hour, nil)
 	if err != nil {
 		return "", err
 	}
 
-	return u.String(), nil
+	return s.shortener.Shorten(ctx, presigned.String())
 }

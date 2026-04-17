@@ -5,13 +5,16 @@ import (
 	"era-dropbot/internal/attachments"
 	"era-dropbot/internal/bot"
 	"era-dropbot/internal/downloader"
+	"era-dropbot/internal/shortener"
 	"era-dropbot/internal/storage"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/joho/godotenv"
 	maxigo "github.com/maxigo-bot/maxigo-client"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )
 
@@ -49,12 +52,21 @@ func main() {
 	}
 	log.Info().Msgf("Бот: %s (ID: %d)\n", info.FirstName, info.UserID)
 
+	rdb := redis.NewClient(&redis.Options{
+		Addr: os.Getenv("REDIS_ADDR"),
+	})
+
+	short := shortener.NewShortener(rdb, os.Getenv("SHORT_PREFIX"))
+
+	go http.ListenAndServe(":8080", shortener.NewServer(short))
+
 	minioStorage, err := storage.NewMinio(
 		os.Getenv("MINIO_ENDPOINT"),
 		os.Getenv("MINIO_ROOT_USER"),
 		os.Getenv("MINIO_ROOT_PASSWORD"),
 		"files",
 		os.Getenv("MINIO_PUBLIC_ENDPOINT"),
+		short,
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to init minio")
