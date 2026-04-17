@@ -28,7 +28,7 @@ func StartNotifier(ctx context.Context, client *maxigo.Client, results <-chan do
 				text := formatMessage(res)
 
 				if text == "" {
-					return
+					continue
 				}
 				_, err := client.SendMessage(ctx, res.ChatID, &maxigo.NewMessageBody{
 					Text: maxigo.Some(text),
