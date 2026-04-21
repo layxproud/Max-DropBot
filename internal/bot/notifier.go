@@ -15,14 +15,12 @@ func StartNotifier(ctx context.Context, client *maxigo.Client, results <-chan do
 		for {
 			select {
 			case <-ctx.Done():
-				log.Info().
-					Msg("Notifier stopped")
+				log.Info().Msg("notifier cancelled")
 				return
 
 			case res, ok := <-results:
 				if !ok {
-					log.Info().
-						Msg("Results channel closed")
+					log.Info().Msg("results channel closed")
 					return
 				}
 				text := formatMessage(res)
@@ -35,9 +33,7 @@ func StartNotifier(ctx context.Context, client *maxigo.Client, results <-chan do
 				})
 
 				if err != nil {
-					log.Error().
-						Err(err).
-						Msg("Send message error")
+					log.Error().Err(err).Msg("send message error")
 				}
 			}
 		}

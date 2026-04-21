@@ -31,7 +31,7 @@ func main() {
 		maxigo.WithRetry(),
 	)
 	if err != nil {
-		log.Fatal().Msgf("Create bot error: %s", err.Error())
+		log.Fatal().Err(err).Msg("create bot error")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -42,15 +42,18 @@ func main() {
 
 	go func() {
 		<-sigChan
-		log.Info().Msg("Shutting down...")
+		log.Info().Msg("shutting down...")
 		cancel()
 	}()
 
 	info, err := client.GetBot(ctx)
 	if err != nil {
-		log.Error().Msgf("Couldn't get bot info: %s", err.Error())
+		log.Error().Err(err).Msg("couldn't get bot info")
 	}
-	log.Info().Msgf("Бот: %s (ID: %d)\n", info.FirstName, info.UserID)
+	log.Info().
+		Str("bot_name", info.FirstName).
+		Int64("bot_id", info.UserID).
+		Msg("bot information")
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr: os.Getenv("REDIS_ADDR"),
@@ -82,7 +85,7 @@ func main() {
 	<-ctx.Done()
 
 	pool.Close()
-	log.Info().Msg("Shutdown complete!")
+	log.Info().Msg("shutdown complete!")
 }
 
 func initFolders() error {

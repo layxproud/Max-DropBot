@@ -45,16 +45,16 @@ func (h *Handler) Handle(ctx context.Context, raw json.RawMessage) {
 
 	switch base.UpdateType {
 	case maxigo.UpdateMessageCreated:
-		log.Info().Msg("New message received")
+		log.Info().Msg("new message received")
 
 		var upd maxigo.MessageCreatedUpdate
 		if err := json.Unmarshal(raw, &upd); err != nil {
-			log.Error().Msgf("Unmarshal error: %s", err.Error())
+			log.Error().Err(err).Msg("unmarshal error")
 			return
 		}
 
 		if upd.Message.Recipient.ChatID == nil {
-			log.Error().Msg("ChatID is nil")
+			log.Error().Msg("chatID is nil")
 			return
 		}
 		chatID := *upd.Message.Recipient.ChatID
@@ -72,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, raw json.RawMessage) {
 		// Обработчик вложений
 		atts, err := upd.Message.Body.ParseAttachments()
 		if err != nil {
-			log.Error().Msgf("Parsing attachments failed: %s", err.Error())
+			log.Error().Err(err).Msg("parsing attachments failed")
 			return
 		}
 		if len(atts) == 0 {
@@ -83,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, raw json.RawMessage) {
 	case maxigo.UpdateBotStarted:
 		var upd maxigo.BotStartedUpdate
 		if err := json.Unmarshal(raw, &upd); err != nil {
-			log.Error().Msgf("Unmarshal error: %s", err.Error())
+			log.Error().Err(err).Msgf("unmarshal error")
 			return
 		}
 
@@ -92,7 +92,7 @@ func (h *Handler) Handle(ctx context.Context, raw json.RawMessage) {
 		})
 
 		if err != nil {
-			log.Error().Msgf("Send message error: %s", err.Error())
+			log.Error().Err(err).Msg("send message error")
 			return
 		}
 	}

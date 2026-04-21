@@ -15,7 +15,7 @@ func StartPolling(ctx context.Context, client *maxigo.Client, handler Handler) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info().Msg("Polling stopped")
+			log.Info().Msg("polling cancelled")
 			return
 		default:
 		}
@@ -31,7 +31,7 @@ func StartPolling(ctx context.Context, client *maxigo.Client, handler Handler) {
 				return
 			}
 
-			log.Error().Msgf("Polling error: %s", err.Error())
+			log.Error().Err(err).Msg("polling error")
 			select {
 			case <-time.After(time.Second):
 			case <-ctx.Done():
