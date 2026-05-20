@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
-	"era-dropbot/internal/attachments"
-	"era-dropbot/internal/bot"
-	"era-dropbot/internal/downloader"
-	"era-dropbot/internal/shortener"
-	"era-dropbot/internal/storage"
+	"max-dropbot/internal/attachments"
+	"max-dropbot/internal/bot"
+	"max-dropbot/internal/downloader"
+	"max-dropbot/internal/shortener"
+	"max-dropbot/internal/storage"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,11 +20,6 @@ import (
 
 func main() {
 	_ = godotenv.Load()
-
-	// err := initFolders()
-	// if err != nil {
-	// 	log.Fatal().Msgf("Init folders error: %s", err.Error())
-	// }
 
 	client, err := maxigo.New(
 		os.Getenv("BOT_TOKEN"),

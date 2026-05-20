@@ -2,11 +2,11 @@ package downloader
 
 import (
 	"context"
-	"era-dropbot/internal/storage"
-	"era-dropbot/utils"
 	"fmt"
 	"io"
 	"math/rand"
+	"max-dropbot/internal/storage"
+	"max-dropbot/utils"
 	"net/http"
 	"time"
 

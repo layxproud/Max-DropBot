@@ -2,7 +2,7 @@ package downloader
 
 import (
 	"context"
-	"era-dropbot/internal/storage"
+	"max-dropbot/internal/storage"
 	"sync"
 )
 

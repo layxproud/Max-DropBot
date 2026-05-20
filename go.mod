@@ -1,4 +1,4 @@
-module era-dropbot
+module max-dropbot
 
 go 1.26.1
 

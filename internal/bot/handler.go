@@ -3,8 +3,8 @@ package bot
 import (
 	"context"
 	"encoding/json"
-	"era-dropbot/internal/attachments"
-	"era-dropbot/internal/messages"
+	"max-dropbot/internal/attachments"
+	"max-dropbot/internal/messages"
 
 	"github.com/maxigo-bot/maxigo-client"
 	"github.com/rs/zerolog/log"

@@ -2,8 +2,8 @@ package storage
 
 import (
 	"context"
-	"era-dropbot/internal/shortener"
 	"io"
+	"max-dropbot/internal/shortener"
 	"time"
 
 	"github.com/minio/minio-go/v7"

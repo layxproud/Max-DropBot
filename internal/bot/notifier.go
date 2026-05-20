@@ -2,9 +2,9 @@ package bot
 
 import (
 	"context"
-	"era-dropbot/internal/downloader"
-	"era-dropbot/internal/messages"
 	"fmt"
+	"max-dropbot/internal/downloader"
+	"max-dropbot/internal/messages"
 
 	"github.com/maxigo-bot/maxigo-client"
 	"github.com/rs/zerolog/log"

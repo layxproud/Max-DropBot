@@ -2,7 +2,7 @@ package attachments
 
 import (
 	"context"
-	"era-dropbot/internal/downloader"
+	"max-dropbot/internal/downloader"
 	"strings"
 
 	"github.com/maxigo-bot/maxigo-client"
