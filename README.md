@@ -1,4 +1,4 @@
-# era-dropbot
+# max-dropbot
 
 A [Max.ru](https://max.ru) messenger bot that accepts files from users and stores them in S3-compatible object storage (MinIO). After a successful upload, the bot sends back a short-lived download link via a built-in URL shortener.
 
