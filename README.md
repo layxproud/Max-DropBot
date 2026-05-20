@@ -73,7 +73,7 @@ docker compose up --build -d
 docker compose down
 ```
 
-## труктура проекта
+## Структура проекта
 
 ```
 .
