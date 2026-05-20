@@ -1,101 +1,101 @@
 # max-dropbot
 
-A [Max.ru](https://max.ru) messenger bot that accepts files from users and stores them in S3-compatible object storage (MinIO). After a successful upload, the bot sends back a short-lived download link via a built-in URL shortener.
+Бот для мессенджера [Max.ru](https://max.ru), который принимает файлы от пользователей и сохраняет их в объектном хранилище, совместимом с S3 (MinIO). После успешной загрузки бот отправляет в ответ временную ссылку для скачивания, сгенерированную с помощью встроенного сервиса сокращения URL.
 
-## Features
+## Возможности
 
-- Accepts files up to **25 MB** in the following formats:
-  - Documents: `.pdf`, `.doc`, `.docx`, `.ppt`, `.pptx`
-  - Video: `.mp4`, `.avi`, `.mov`, `.mkv`, `.wmv`
-  - Audio: `.mp3`, `.wav`, `.aac`, `.m4a`, `.flac`
-  - Images: `.png`, `.jpg`, `.jpeg`, `.gif`, `.tiff`, `.svg`
-- Concurrent download worker pool (4 workers)
-- Exponential backoff with jitter on transient errors
-- Short download URLs with a 24-hour TTL (Redis-backed)
-- Structured JSON logging via [zerolog](https://github.com/rs/zerolog)
-- Graceful shutdown on `SIGINT` / `SIGTERM`
+- Принимает файлы размером до 25 МБ в следующих форматах:
+  - Документы: `.pdf`, `.doc`, `.docx`, `.ppt`, `.pptx`
+  - Видео: `.mp4`, `.avi`, `.mov`, `.mkv`, `.wmv`
+  - Аудио: `.mp3`, `.wav`, `.aac`, `.m4a`, `.flac`
+  - Изображения: `.png`, `.jpg`, `.jpeg`, `.gif`, `.tiff`, `.svg`
+- Пул воркеров для параллельной обработки загрузок (4 воркера)
+- Экспоненциальная выдержка с джиттером (jitter) при возникновении временных ошибок
+- Короткие ссылки для скачивания с TTL 24 часа (на базе Redis)
+- Структурированное логирование в формате JSON с использованием [zerolog](https://github.com/rs/zerolog)
+- Graceful shutdown по сигналам `SIGINT` / `SIGTERM`
 
-## Stack
+## Стек технологий
 
-| Component      | Role                      |
-| -------------- | ------------------------- |
-| Go             | Bot application           |
-| MinIO          | Object storage            |
-| Redis          | URL shortener token store |
-| Nginx          | Reverse proxy             |
-| Docker Compose | Orchestration             |
+| Компонент | Роль                                 |
+| --------- | ------------------------------------ |
+| Go        | Приложение бота                      |
+| MinIO     | Объектное хранилище                  |
+| Redis     | Хранилище токенов для сокращения URL |
+| Nginx     | Обратный прокси-сервер               |
+| Docker    | Compose Оркестрация контейнеров      |
 
-## Getting Started
+## Начало работы
 
-### Prerequisites
+### Предварительные требования
 
-- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/)
-- A Max.ru bot token
+- [Docker](https://docs.docker.com/get-docker/) и [Docker Compose](https://docs.docker.com/compose/)
+- Токен бота Max.ru
 
-### Configuration
+### Настройка
 
-Create a `.env` file in the project root. This file is listed in `.gitignore` and must never be committed.
+Создайте файл `.env` в корневом каталоге проекта. Этот файл включен в `.gitignore` и ни в коем случае не должен быть добавлен в репозиторий.
 
 ```dotenv
-# Max.ru bot token
+# Токен бота Max.ru
 BOT_TOKEN=your_bot_token_here
 
-# Redis address (matches the service name in compose.yaml)
+# Адрес Redis (должен совпадать с именем сервиса в compose.yaml)
 REDIS_ADDR=redis:6379
 
-# Public prefix used for generated short links, e.g. https://example.com/f/
-SHORT_PREFIX=https://example.com/f/
+# Публичный префикс для генерируемых коротких ссылок, например: https://example.com/f/
+SHORT_PREFIX=http://localhost/f/
 
-# MinIO – internal endpoint used for uploads (routed through Nginx)
+# MinIO – внутренний эндпоинт для загрузки файлов (маршрутизируется через Nginx)
 MINIO_ENDPOINT=nginx:80
 
-# MinIO – public endpoint used for presigned URL generation
+# MinIO – публичный эндпоинт для генерации предподписанных URL (presigned URLs)
 MINIO_PUBLIC_ENDPOINT=localhost:9000
 
-# MinIO credentials
+# Учетные данные MinIO
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=minioadmin
 ```
 
-> **Note:** `MINIO_ENDPOINT` points to the Nginx service so that uploads go through the reverse proxy. `MINIO_PUBLIC_ENDPOINT` is used only for presigned URL signing and does not make network calls.
+> **Примечание:** Параметр `MINIO_ENDPOINT` указывает на сервис Nginx, чтобы загрузка файлов осуществлялась через обратный прокси-сервер. Переменная `MINIO_PUBLIC_ENDPOINT` используется исключительно для подписания предварительно подписанных URL и не выполняет никаких сетевых вызовов.
 
-### Running
+### Запуск:
 
 ```bash
 docker compose up --build -d
 ```
 
-The bot starts polling for updates automatically once MinIO reports healthy.
+Бот автоматически начинает опрос на наличие обновлений, как только MinIO переходит в состояние «здоров» (healthy).
 
-To stop:
+Для остановки:
 
 ```bash
 docker compose down
 ```
 
-## Project Structure
+## труктура проекта
 
 ```
 .
-├── cmd/bot/          # Entry point
+├── cmd/bot/        # Точка входа
 ├── internal/
-│   ├── attachments/  # File routing by extension
-│   ├── bot/          # Update handler, notifier, polling loop
-│   ├── downloader/   # Worker pool and download logic
-│   ├── messages/     # Bot response strings
-│   ├── shortener/    # URL shortener (Redis) + HTTP redirect server
-│   └── storage/      # MinIO client wrapper
-├── utils/            # Filename sanitization helpers
+│ ├── attachments/  # Маршрутизация файлов по расширению
+│ ├── bot/          # Обработчик обновлений, система уведомлений, цикл опроса
+│ ├── downloader/   # Пул воркеров и логика скачивания
+│ ├── messages/     # Тексты ответов бота
+│ ├── shortener/    # Сокращатель URL (Redis) + сервер HTTP-перенаправлений
+│ └── storage/      # Обертка для клиента MinIO
+├── utils/          # Вспомогательные функции для очистки имен файлов
 ├── compose.yaml
 ├── Dockerfile
 └── nginx.conf
 ```
 
-## Bot Commands
+## Команды бота
 
-| Command  | Description                            |
-| -------- | -------------------------------------- |
-| `/start` | Welcome message with supported formats |
-| `/info`  | List of accepted file formats          |
+| Команда | Описание                                                    |
+| ------- | ----------------------------------------------------------- |
+| /start  | Приветственное сообщение со списком поддерживаемых форматов |
+| /info   | Список принимаемых форматов файлов                          |
 
-Any message containing an attachment will trigger the upload flow. The bot responds with a status message once the upload completes or fails.
+Любое сообщение, содержащее вложение, запускает процесс загрузки. Бот отправляет сообщение о статусе операции после того, как загрузка успешно завершится или произойдет сбой.
