@@ -1,0 +1,24 @@
+image:
+  repository: your-dockerhub/dropbot
+  tag: latest
+
+bot:
+  env:
+    BOT_TOKEN: "f9LHodD0cOJeQ-CM_xl-ANfee7WnRA-OzsIqBxwlhbz3fsWm7zpE2lVwwvem_xr28c9krQPFJTc7CxLEq50B"
+    MINIO_ENDPOINT: "minio:9000"
+    MINIO_PUBLIC_ENDPOINT: "eradropbot.com"
+    REDIS_ADDR: "redis:6379"
+    SHORT_PREFIX: "https://eradropbot/f/"
+
+minio:
+  rootUser: minio
+  rootPassword: minio123
+  persistence:
+    size: 10Gi
+
+redis:
+  persistence:
+    size: 1Gi
+
+ingress:
+  host: eradropbot.com

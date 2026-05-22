@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bot
+  template:
+    metadata:
+      labels:
+        app: bot
+    spec:
+      containers:
+        - name: bot
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          env:
+            - name: BOT_TOKEN
+              value: "{{ .Values.bot.env.BOT_TOKEN }}"
+            - name: MINIO_ENDPOINT
+              value: "{{ .Values.bot.env.MINIO_ENDPOINT }}"
+            - name: MINIO_PUBLIC_ENDPOINT
+              value: "{{ .Values.bot.env.MINIO_PUBLIC_ENDPOINT }}"
+            - name: REDIS_ADDR
+              value: "{{ .Values.bot.env.REDIS_ADDR }}"
+            - name: SHORT_PREFIX
+              value: "{{ .Values.bot.env.SHORT_PREFIX }}"
