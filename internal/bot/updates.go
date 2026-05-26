@@ -11,7 +11,6 @@ import (
 
 func StartPolling(ctx context.Context, client *maxigo.Client, handler Handler) {
 	var marker int64
-
 	for {
 		select {
 		case <-ctx.Done():
@@ -20,31 +19,30 @@ func StartPolling(ctx context.Context, client *maxigo.Client, handler Handler) {
 		default:
 		}
 
-		result, err := client.GetUpdates(ctx, maxigo.GetUpdatesOpts{
+		// Скрываем дедлайн
+		pollCtx := withoutDeadline(ctx)
+
+		result, err := client.GetUpdates(pollCtx, maxigo.GetUpdatesOpts{
 			Limit:   100,
 			Timeout: 30,
 			Marker:  marker,
 		})
-
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				return
 			}
-
 			log.Error().Err(err).Msg("polling error")
 			select {
 			case <-time.After(time.Second):
 			case <-ctx.Done():
 				return
 			}
-
 			continue
 		}
 
 		for _, raw := range result.Updates {
 			handler.Handle(ctx, raw)
 		}
-
 		if result.Marker != nil {
 			marker = *result.Marker
 		}
