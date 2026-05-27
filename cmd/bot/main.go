@@ -15,11 +15,25 @@ import (
 	"github.com/joho/godotenv"
 	maxigo "github.com/maxigo-bot/maxigo-client"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	_ = godotenv.Load()
+
+	logPath := os.Getenv("LOG_FILE")
+	if logPath == "" {
+		logPath = "/app/logs/bot.log"
+	}
+	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to open log file")
+	}
+	defer logFile.Close()
+
+	multi := zerolog.MultiLevelWriter(os.Stdout, logFile)
+	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
 
 	client, err := maxigo.New(
 		os.Getenv("BOT_TOKEN"),
