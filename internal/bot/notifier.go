@@ -17,10 +17,9 @@ func StartNotifier(client *maxigo.Client, results <-chan downloader.Result) {
 			if text == "" {
 				continue
 			}
-			_, err := client.SendMessage(context.Background(), res.ChatID, &maxigo.NewMessageBody{
+			if _, err := client.SendMessage(context.Background(), res.ChatID, &maxigo.NewMessageBody{
 				Text: maxigo.Some(text),
-			})
-			if err != nil {
+			}); err != nil {
 				log.Error().Err(err).Msg("send message error")
 			}
 		}
