@@ -23,25 +23,34 @@ func (h *Handler) handleCommand(ctx context.Context, chatID int64, text string) 
 	switch text {
 
 	case "/start":
-		h.client.SendMessage(ctx, chatID, &maxigo.NewMessageBody{
+		if _, err := h.client.SendMessage(ctx, chatID, &maxigo.NewMessageBody{
 			Text: maxigo.Some(string(messages.Start)),
-		})
+		}); err != nil {
+			log.Error().Err(err).Int64("chatID", chatID).Msg("send message error")
+		}
 
 	case "/info":
-		h.client.SendMessage(ctx, chatID, &maxigo.NewMessageBody{
+		if _, err := h.client.SendMessage(ctx, chatID, &maxigo.NewMessageBody{
 			Text: maxigo.Some(string(messages.Info)),
-		})
+		}); err != nil {
+			log.Error().Err(err).Int64("chatID", chatID).Msg("send message error")
+		}
 
 	default:
-		h.client.SendMessage(ctx, chatID, &maxigo.NewMessageBody{
+		if _, err := h.client.SendMessage(ctx, chatID, &maxigo.NewMessageBody{
 			Text: maxigo.Some(string(messages.UnknownCommand)),
-		})
+		}); err != nil {
+			log.Error().Err(err).Int64("chatID", chatID).Msg("send message error")
+		}
 	}
 }
 
 func (h *Handler) Handle(ctx context.Context, raw json.RawMessage) {
 	var base maxigo.Update
-	_ = json.Unmarshal(raw, &base)
+	if err := json.Unmarshal(raw, &base); err != nil {
+		log.Error().Err(err).Msg("unmarshal base update error")
+		return
+	}
 
 	switch base.UpdateType {
 	case maxigo.UpdateMessageCreated:
@@ -87,13 +96,10 @@ func (h *Handler) Handle(ctx context.Context, raw json.RawMessage) {
 			return
 		}
 
-		_, err := h.client.SendMessage(ctx, upd.ChatID, &maxigo.NewMessageBody{
+		if _, err := h.client.SendMessage(ctx, upd.ChatID, &maxigo.NewMessageBody{
 			Text: maxigo.Some(messages.Start),
-		})
-
-		if err != nil {
-			log.Error().Err(err).Msg("send message error")
-			return
+		}); err != nil {
+			log.Error().Err(err).Int64("chatID", upd.ChatID).Msg("send message error")
 		}
 	}
 }
