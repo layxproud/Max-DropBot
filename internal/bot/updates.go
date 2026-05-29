@@ -19,10 +19,7 @@ func StartPolling(ctx context.Context, client *maxigo.Client, handler Handler) {
 		default:
 		}
 
-		// Скрываем дедлайн
-		pollCtx := withoutDeadline(ctx)
-
-		result, err := client.GetUpdates(pollCtx, maxigo.GetUpdatesOpts{
+		result, err := client.GetUpdates(ctx, maxigo.GetUpdatesOpts{
 			Limit:   100,
 			Timeout: 30,
 			Marker:  marker,
@@ -30,6 +27,10 @@ func StartPolling(ctx context.Context, client *maxigo.Client, handler Handler) {
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				return
+			}
+			var e *maxigo.Error
+			if errors.As(err, &e) && e.Kind == maxigo.ErrTimeout {
+				continue
 			}
 			log.Error().Err(err).Msg("polling error")
 			select {

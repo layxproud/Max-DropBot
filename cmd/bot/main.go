@@ -96,14 +96,3 @@ func main() {
 	pool.Close()
 	log.Info().Msg("shutdown complete!")
 }
-
-func initFolders() error {
-	dirs := []string{"PDF", "Word", "PowerPoint", "Video", "Audio", "Image"}
-
-	for _, d := range dirs {
-		if err := os.MkdirAll("./downloads/"+d, os.ModePerm); err != nil {
-			return err
-		}
-	}
-	return nil
-}
