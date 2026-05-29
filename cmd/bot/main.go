@@ -88,7 +88,7 @@ func main() {
 	processor := attachments.NewProcessor(pool)
 	handler := bot.NewHandler(client, processor)
 
-	bot.StartNotifier(ctx, client, pool.Results())
+	bot.StartNotifier(client, pool.Results())
 	bot.StartPolling(ctx, client, *handler)
 
 	<-ctx.Done()

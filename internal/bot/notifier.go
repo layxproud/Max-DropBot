@@ -10,33 +10,21 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func StartNotifier(ctx context.Context, client *maxigo.Client, results <-chan downloader.Result) {
+func StartNotifier(client *maxigo.Client, results <-chan downloader.Result) {
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				log.Info().Msg("notifier cancelled")
-				return
-
-			case res, ok := <-results:
-				if !ok {
-					log.Info().Msg("results channel closed")
-					return
-				}
-				text := formatMessage(res)
-
-				if text == "" {
-					continue
-				}
-				_, err := client.SendMessage(ctx, res.ChatID, &maxigo.NewMessageBody{
-					Text: maxigo.Some(text),
-				})
-
-				if err != nil {
-					log.Error().Err(err).Msg("send message error")
-				}
+		for res := range results {
+			text := formatMessage(res)
+			if text == "" {
+				continue
+			}
+			_, err := client.SendMessage(context.Background(), res.ChatID, &maxigo.NewMessageBody{
+				Text: maxigo.Some(text),
+			})
+			if err != nil {
+				log.Error().Err(err).Msg("send message error")
 			}
 		}
+		log.Info().Msg("notifier done")
 	}()
 }
 
